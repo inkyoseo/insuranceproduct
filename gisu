@@ -1,0 +1,65 @@
+
+install.packages('fmsb')
+install.packages('lifecontingencies')
+library(lifecontingencies)
+library(fmsb)
+library(data.table)
+
+# Function S4 to dataframe
+S4_to_dataframe <- function(s4obj) {
+  nms <- slotNames(s4obj)
+  
+  lst <- lapply(nms, function(nm) slot(s4obj, nm))
+  as.data.frame(setNames(lst, nms))
+}
+
+# table of risk rate
+q0 <- seq(0.1, 0.9,by=0.1)
+q1 <- seq(0.1, 0.9,by=0.1)
+q2 <- seq(0.1, 0.9,by=0.1)
+q0
+Q <- data.frame(q0, q1,q2)
+Q %>% head()
+
+# test
+probs2lifetable(Q[[1]],type="qx",name="fake") %>% as("data.frame")  
+#** Q[[1]] in loop and Q[1] in output
+# risk rate to lifetable
+newTable <- list()
+for (i in 1:3) {
+newTable[[i]] <- probs2lifetable(Q[[i]],type="qx",name="fake") %>% as("data.frame")
+}
+
+x <- list()
+lx <- list()
+exampleAct <- list()
+# lifetable <-new("lifetable", x=x, lx=lx, name = "lifetable")
+for (i in 1:3) {
+r <- 0.0275
+x <- newTable[[i]]$x
+lx <- newTable[[i]]$lx
+
+exampleAct[[i]]<-new("actuarialtable", x=x, lx=lx, interest = r, name =
+                  paste("example actuarialtable", i, "rr"))
+}
+exampleAct1 <- exampleAct[[1]] %>% as("data.frame")
+exampleAct1
+
+
+str(exampleAct)
+
+write.csv(exampleAct, 'exampleAct.csv')
+showMethods(classes = c("actuarialtable", "lifetable"))
+pxt(exampleAct, 5,1)
+gisu <- as(exampleAct, "data.frame")
+print(gisu)
+
+
+
+
+
+
+
+
+
+
