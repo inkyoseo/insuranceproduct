@@ -1,65 +1,37 @@
-
-install.packages('fmsb')
-install.packages('lifecontingencies')
 library(lifecontingencies)
 library(fmsb)
 library(data.table)
+library(dplyr)
 
-# Function S4 to dataframe
-S4_to_dataframe <- function(s4obj) {
-  nms <- slotNames(s4obj)
-  
-  lst <- lapply(nms, function(nm) slot(s4obj, nm))
-  as.data.frame(setNames(lst, nms))
+
+qqx <- c(NA, NA, 0.000076, 0.000429, 0.000760, 0.001086, 0.001475, 0.002003, 0.002706, 0.003507, 0.004361, 0.005328, 0.006544, 0.008093, 0.009804, 0.011610, 0.013714, 0.016472, 0.020095, 0.024453, 0.029131, 0.033663)
+
+
+DxNx <- function(type, r, w, qqx) {
+  #qqx 납입탈퇴
+if (type == 1) {
+  age <- seq(0, w, by =1) 
+  lx <- rep(1, w+1)
+  Dx <- (1+r)^-age
+  dat <- data.frame(age, Dx)
+  Nx <- dat$Dx %>% rev() %>% cumsum() %>% rev()
+  dat <- data.frame(age, lx, Dx, Nx)
+  return(dat)
+} else if (type == 2){ 
+  # try(if(is.na(qqx)) stop("qqx has NAs")) # 탈퇴율 NAs 존재시 에러
+  age <- seq(0, length(qqx)-1, by =1) 
+  dat <- tibble::lst(age,qqx) %>% lapply(`length<-`, max(lengths(.))) %>% as.data.frame() %>% na.omit() %>% mutate(time = row_number() - 1)
+  tmp <- dat %>% mutate(lx = lag(1-qqx)) %>% replace(is.na(.), 1) 
+  nrow(dat)
+  nrow(tmp)
+  dat$lx <- cumprod(tmp$lx)
+  dat$Dx <- (1+r)^-dat$time
+  dat$Nx <- dat$Dx %>% rev() %>% cumsum() %>% rev()
+  return(dat)
+} else { 
+   retern("error")
+ }
 }
 
-# table of risk rate
-q0 <- seq(0.1, 0.9,by=0.1)
-q1 <- seq(0.1, 0.9,by=0.1)
-q2 <- seq(0.1, 0.9,by=0.1)
-q0
-Q <- data.frame(q0, q1,q2)
-Q %>% head()
 
-# test
-probs2lifetable(Q[[1]],type="qx",name="fake") %>% as("data.frame")  
-#** Q[[1]] in loop and Q[1] in output
-# risk rate to lifetable
-newTable <- list()
-for (i in 1:3) {
-newTable[[i]] <- probs2lifetable(Q[[i]],type="qx",name="fake") %>% as("data.frame")
-}
-
-x <- list()
-lx <- list()
-exampleAct <- list()
-# lifetable <-new("lifetable", x=x, lx=lx, name = "lifetable")
-for (i in 1:3) {
-r <- 0.0275
-x <- newTable[[i]]$x
-lx <- newTable[[i]]$lx
-
-exampleAct[[i]]<-new("actuarialtable", x=x, lx=lx, interest = r, name =
-                  paste("example actuarialtable", i, "rr"))
-}
-exampleAct1 <- exampleAct[[1]] %>% as("data.frame")
-exampleAct1
-
-
-str(exampleAct)
-
-write.csv(exampleAct, 'exampleAct.csv')
-showMethods(classes = c("actuarialtable", "lifetable"))
-pxt(exampleAct, 5,1)
-gisu <- as(exampleAct, "data.frame")
-print(gisu)
-
-
-
-
-
-
-
-
-
-
+DxNx(2, 0.025, 5, qx)
