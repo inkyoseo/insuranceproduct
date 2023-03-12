@@ -35,3 +35,48 @@ if (type == 1) {
 
 
 DxNx(2, 0.025, 5, qx)
+
+# fake qx
+qx_t <- data.frame(age= 6:21, t = seq(0,15, by=1), qx = c(0.001475, 0.002003, 0.002706, 0.003507 , 0.004361, 0.005328, 0.006544, 0.008093, 0.009804, 0.011610, 0.013714, 0.016472, 0.020095, 0.024453, 0.029131, 0.033663))  
+
+# CxMx Calculator
+
+CxMx <- function(DxNx, star_age, n, qx) { # update qx to q_code
+  qx <- qx[qx$age >= star_age & qx$age <= n+star_age, ] 
+  dat <- merge(DxNx,qx) %>% mutate(Cx = lx*qx/(1+r)^(age-min(age)+0.5))
+  dat$Mx <- dat$Cx %>% rev() %>% cumsum() %>% rev()
+  return(dat)
+}
+
+Nxtable <- DxNx(2, 0.025, 100, qqx=qx)
+Nxtable <- DxNx(1,0.025,5)
+CxMx_table <- CxMx(Nxtable, 10, 5, qx_t) 
+CxMx_table
+# CxMx_table[CxMx_table$t == 0,]$Nx # check
+
+
+# Premium Calculator
+
+Premium <- function(CxMx, start_age, m, n, ...) {
+  Mxx <- CxMx[CxMx$age == start_age, ]$Mx - CxMx[CxMx$age == start_age+ n, ]$Mx
+  Nxx <- CxMx[CxMx$age == start_age, ]$Nx - CxMx[CxMx$age == start_age+ m, ]$Nx
+  Dxx <- CxMx[CxMx$age == start_age, ]$Dx - CxMx[CxMx$age == start_age+m, ]$Dx
+  
+  NxStr12 <- 12*(Nxx - (12-1)/(12*2)*Dxx)
+  NxStr4 <- 4*(Nxx - (4-1)/(4*2)*Dxx)
+  NxStr2 <- 2*(Nxx - (2-1)/(2*2)*Dxx)
+  NxStr1 <- 1*(Nxx - (1-1)/(1*2)*Dxx)
+  
+  Premium12 <- Mxx/NxStr12
+  Premium4 <- Mxx/NxStr4
+  Premium2 <- Mxx/NxStr2
+  Premium1 <- Mxx/NxStr1
+  premium <- data.frame(Premium12, Premium4, Premium2, Premium1)
+  return(premium)
+}
+
+Premium(CxMx = CxMx_table, start_age = 10, m = 5, n = 5)
+
+
+
+
